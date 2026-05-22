@@ -1,5 +1,5 @@
 plugins {
-    alias(libs.plugins.android.application)   // <-- ganti ini
+    alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
 
@@ -15,7 +15,7 @@ android {
         versionName   = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "SUPABASE_URL",      "\"https://gzsldboehrwcwwatmxhs.supabase.co/rest/v1/\"")
+        buildConfigField("String", "SUPABASE_URL",      "\"https://gzsldboehrwcwwatmxhs.supabase.co\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd6c2xkYm9laHJ3Y3d3YXRteGhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNTU4MTYsImV4cCI6MjA5NDgzMTgxNn0.4V-RBMFsJET6JKuloOH_DAUdE48NI5quQk0rSHjdzlo\"")
     }
 

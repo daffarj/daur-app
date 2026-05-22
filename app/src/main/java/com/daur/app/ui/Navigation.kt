@@ -5,13 +5,15 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.daur.app.ui.screens.LoginScreen
+import com.daur.app.ui.screens.MainScreen
 import com.daur.app.ui.screens.SplashScreen
 
-// ── Routes ────────────────────────────────────────────────
+// ── Routes level-atas (Splash → Login → Main) ─────────────
+// Route di dalam tab (beranda, setor, dst) dikelola oleh MainScreen
 object Routes {
-    const val SPLASH  = "splash"
-    const val LOGIN   = "login"
-    const val HOME    = "home"        // akan dibuat di tahap berikutnya
+    const val SPLASH = "splash"
+    const val LOGIN  = "login"
+    const val MAIN   = "main"
 }
 
 @Composable
@@ -37,17 +39,16 @@ fun DaurNavGraph(startDestination: String = Routes.SPLASH) {
         composable(Routes.LOGIN) {
             LoginScreen(
                 onLoginSuccess = {
-                    navController.navigate(Routes.HOME) {
+                    navController.navigate(Routes.MAIN) {
                         popUpTo(Routes.LOGIN) { inclusive = true }
                     }
                 }
             )
         }
 
-        // Home (placeholder sampai screen berikutnya dibuat)
-        composable(Routes.HOME) {
-            // HomeScreen() — akan diisi di tahap 2
-            androidx.compose.material3.Text("Home Screen — Coming Soon")
+        // Main Screen (Scaffold + BottomNavBar + semua tab)
+        composable(Routes.MAIN) {
+            MainScreen()
         }
     }
 }
