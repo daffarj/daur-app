@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
@@ -25,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.daur.app.data.SessionManager
 import com.daur.app.ui.components.DaurLogo
 import com.daur.app.ui.theme.*
 import com.daur.app.viewmodel.AuthUiState
@@ -37,10 +39,12 @@ fun LoginScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var isLoginTab by remember { mutableStateOf(true) }
+    val context = LocalContext.current  // ← tambahkan ini
 
     // Navigate on success
     LaunchedEffect(uiState) {
         if (uiState is AuthUiState.Success) {
+            SessionManager.save(context)  // ← tambahkan ini
             viewModel.resetState()
             onLoginSuccess()
         }

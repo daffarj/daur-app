@@ -16,12 +16,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        // ✅ setContent di DALAM launch — nunggu load() selesai dulu
         lifecycleScope.launch {
-            SessionManager.load(this@MainActivity)  // load token sebelum UI tampil
-        }
-        setContent {
-            DaurTheme {
-                DaurNavGraph()
+            SessionManager.load(this@MainActivity)
+            setContent {
+                DaurTheme {
+                    DaurNavGraph()
+                }
             }
         }
     }

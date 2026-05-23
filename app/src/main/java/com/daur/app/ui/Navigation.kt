@@ -4,6 +4,7 @@ import androidx.compose.runtime.*
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.daur.app.data.SessionManager
 import com.daur.app.ui.screens.LoginScreen
 import com.daur.app.ui.screens.MainScreen
 import com.daur.app.ui.screens.SplashScreen
@@ -23,7 +24,9 @@ fun DaurNavGraph(startDestination: String = Routes.SPLASH) {
         composable(Routes.SPLASH) {
             SplashScreen(
                 onSplashFinished = {
-                    navController.navigate(Routes.LOGIN) {
+                    // Cek apakah user sudah login sebelumnya
+                    val destination = if (SessionManager.isLoggedIn) Routes.MAIN else Routes.LOGIN
+                    navController.navigate(destination) {
                         popUpTo(Routes.SPLASH) { inclusive = true }
                     }
                 }
