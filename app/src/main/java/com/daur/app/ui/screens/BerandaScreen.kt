@@ -253,13 +253,14 @@ private fun SaldoPoinCard(profile: Profile) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFFCAA33))
+                        .background(Color(0xFFB8F0D8))  // hijau muda
                         .padding(10.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Filled.MonetizationOn, contentDescription = null,
-                        tint = Color(0xFF6B4200), modifier = Modifier.size(32.dp))
+                    Icon(Icons.Filled.Eco, contentDescription = null,
+                        tint = Color(0xFF006B3C), modifier = Modifier.size(32.dp))
                 }
+
             }
 
             Spacer(Modifier.height(16.dp))
