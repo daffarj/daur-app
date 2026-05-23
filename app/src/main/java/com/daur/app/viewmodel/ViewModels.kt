@@ -41,7 +41,11 @@ class ProfilViewModel : ViewModel() {
         }
     }
 
-    fun logout() { SessionManager.clear() }
+    fun logout(context: android.content.Context) {
+        viewModelScope.launch {
+            SessionManager.clear(context)
+        }
+    }
 }
 
 // ──────────────────────────────────────────────────────────

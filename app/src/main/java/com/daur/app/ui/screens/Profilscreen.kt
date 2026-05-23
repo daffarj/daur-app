@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,6 +34,7 @@ fun ProfilScreen(
     vm: ProfilViewModel = viewModel()
 ) {
     val state by vm.state.collectAsState()
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -56,7 +58,7 @@ fun ProfilScreen(
                 EmptyState(icon = Icons.Outlined.ErrorOutline, title = "Gagal memuat profil", message = s.message, isError = true, onRetry = { vm.load() })
             }
             is UiState.Success -> ProfilContent(profile = s.data, onLogout = {
-                vm.logout()
+                vm.logout(context)  // ← pass context di sini
                 onLogout()
             })
             else -> {}

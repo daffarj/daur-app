@@ -4,12 +4,14 @@ import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.daur.app.BuildConfig
+import com.daur.app.data.SessionManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -91,24 +93,38 @@ class AuthViewModel : ViewModel() {
     fun resetState() { _uiState.value = AuthUiState.Idle }
 
     // ── HTTP: Login ───────────────────────────────────────
+    // ── HTTP: Login ───────────────────────────────────────
     private suspend fun loginRequest(
         email: String,
         password: String
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val url = URL("$AUTH_ENDPOINT/token?grant_type=password")
-            val body = """{"email":"$email","password":"$password"}"""
+            val reqBody = """{"email":"$email","password":"$password"}"""  // ganti nama jadi reqBody
             val conn = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
                 setRequestProperty("Content-Type", "application/json")
                 setRequestProperty("apikey", SUPABASE_ANON)
                 doOutput = true
-                outputStream.write(body.toByteArray())
+                outputStream.write(reqBody.toByteArray())
             }
             val code = conn.responseCode
+            val respBody = try {                                            // ganti nama jadi respBody
+                conn.inputStream.bufferedReader().readText()
+            } catch (_: Exception) {
+                conn.errorStream?.bufferedReader()?.readText() ?: ""
+            }
             conn.disconnect()
-            if (code == 200) Result.success(Unit)
-            else Result.failure(Exception("Login gagal (kode: $code)"))
+            if (code == 200) {
+                val json = JSONObject(respBody)
+                val token = json.getString("access_token")
+                val userId = json.getJSONObject("user").getString("id")
+                SessionManager.accessToken = token                         // simpan token
+                SessionManager.userId = userId                             // simpan userId
+                Result.success(Unit)                                       // return Unit, bukan Pair
+            } else {
+                Result.failure(Exception("Login gagal (kode: $code)"))
+            }                                                              // tutup if-else dengan benar
         } catch (e: Exception) {
             Result.failure(e)
         }
