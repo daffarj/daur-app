@@ -40,17 +40,13 @@ fun EdukasiLingkunganScreen(
     val selectedFilter by vm.selectedFilter.collectAsState()
     val searchQuery by vm.searchQuery.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Edukasi Hijau", fontWeight = FontWeight.Bold, color = Primary, fontSize = 20.sp) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Surface)
-            )
-        },
-        containerColor = Background
-    ) { innerPadding ->
+    Column(modifier = Modifier.fillMaxSize().background(Background)) {
+        TopAppBar(
+            title = { Text("Edukasi Hijau", fontWeight = FontWeight.Bold, color = Primary, fontSize = 20.sp) },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Surface)
+        )
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(innerPadding),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
             // ── Hero banner ──────────────────────────────

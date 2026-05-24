@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
             SessionManager.load(this@MainActivity)
             setContent {
                 DaurTheme {
-                    DaurNavGraph()
+                    DaurNavGraph(context = this@MainActivity)
                 }
             }
         }

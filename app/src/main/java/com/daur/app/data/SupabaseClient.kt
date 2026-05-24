@@ -44,7 +44,7 @@ object SupabaseClient {
                 Result.success(body)
             } else {
                 val msg = when (code) {
-                    401  -> "Sesi habis, silakan login ulang"
+                    401  -> { SessionManager.notifySessionExpired(); "Sesi habis, silakan login ulang" }
                     403  -> "Akses ditolak — cek RLS policy"
                     404  -> "Tabel tidak ditemukan"
                     else -> "Error $code: $body"
@@ -96,7 +96,7 @@ object SupabaseClient {
                 Result.success(resp)
             } else {
                 val msg = when (code) {
-                    401 -> "Sesi habis, silakan login ulang"
+                    401 -> { SessionManager.notifySessionExpired(); "Sesi habis, silakan login ulang" }
                     403 -> "Tidak punya akses (403)"
                     404 -> "Data tidak ditemukan"
                     else -> "Gagal menyimpan data (kode: $code) | $resp"

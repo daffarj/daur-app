@@ -1,5 +1,6 @@
 package com.daur.app.ui
 
+import android.content.Context
 import androidx.compose.runtime.*
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -8,6 +9,7 @@ import com.daur.app.data.SessionManager
 import com.daur.app.ui.screens.LoginScreen
 import com.daur.app.ui.screens.MainScreen
 import com.daur.app.ui.screens.SplashScreen
+import kotlinx.coroutines.launch
 
 object Routes {
     const val SPLASH = "splash"
@@ -16,15 +18,27 @@ object Routes {
 }
 
 @Composable
-fun DaurNavGraph(startDestination: String = Routes.SPLASH) {
+fun DaurNavGraph(context: Context, startDestination: String = Routes.SPLASH) {
     val navController = rememberNavController()
+    val scope = rememberCoroutineScope()
+
+    // ── Observasi event session expired dari mana saja ─────
+    LaunchedEffect(Unit) {
+        SessionManager.sessionExpired.collect {
+            // Clear token dulu
+            SessionManager.clear(context)
+            // Redirect ke login, hapus semua back stack
+            navController.navigate(Routes.LOGIN) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
 
     NavHost(navController = navController, startDestination = startDestination) {
 
         composable(Routes.SPLASH) {
             SplashScreen(
                 onSplashFinished = {
-                    // Cek apakah user sudah login sebelumnya
                     val destination = if (SessionManager.isLoggedIn) Routes.MAIN else Routes.LOGIN
                     navController.navigate(destination) {
                         popUpTo(Routes.SPLASH) { inclusive = true }
