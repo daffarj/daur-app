@@ -48,109 +48,101 @@ fun TukarPoinScreen(vm: TukarPoinViewModel = viewModel()) {
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
+    // FIX: Box + Column menggantikan Scaffold agar tidak double padding
+    // SnackbarHost diletakkan sebagai overlay di dalam Box
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().background(Background)) {
             TopAppBar(
                 title = { Text("Tukar Poin", fontWeight = FontWeight.Bold, color = Primary, fontSize = 20.sp) },
-                actions = {
-                    IconButton(onClick = { vm.load() }) {
-                        Icon(Icons.Outlined.Refresh, contentDescription = "Refresh", tint = Primary)
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Surface)
             )
-        },
-        containerColor = Background
-    ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(innerPadding),
-            contentPadding = PaddingValues(bottom = 32.dp)
-        ) {
-            // ── Saldo Poin Card ──────────────────────────
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 16.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Primary)
-                        .padding(20.dp)
-                ) {
-                    Box(modifier = Modifier.size(128.dp).align(Alignment.TopEnd).offset(x = 32.dp, y = (-32).dp).clip(CircleShape).background(Color.White.copy(alpha = 0.1f)))
-                    Box(modifier = Modifier.size(80.dp).align(Alignment.BottomStart).offset(x = (-20).dp, y = 20.dp).clip(CircleShape).background(Secondary.copy(alpha = 0.15f)))
-                    Column {
-                        Text("Saldo Poin Anda", fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f))
-                        Spacer(Modifier.height(6.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Filled.Stars, contentDescription = null, tint = Color(0xFFFCAA33), modifier = Modifier.size(30.dp))
-                            Text("— Poin", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                        }
-                        Spacer(Modifier.height(10.dp))
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(Color.White.copy(alpha = 0.12f))
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Icon(Icons.Outlined.Info, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
-                                Text("Poin bertambah otomatis setiap setoran selesai", fontSize = 11.sp, color = Color.White)
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 32.dp)
+            ) {
+                // ── Saldo Poin Card ──────────────────────────
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 16.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Primary)
+                            .padding(20.dp)
+                    ) {
+                        Box(modifier = Modifier.size(128.dp).align(Alignment.TopEnd).offset(x = 32.dp, y = (-32).dp).clip(CircleShape).background(Color.White.copy(alpha = 0.1f)))
+                        Box(modifier = Modifier.size(80.dp).align(Alignment.BottomStart).offset(x = (-20).dp, y = 20.dp).clip(CircleShape).background(Secondary.copy(alpha = 0.15f)))
+                        Column {
+                            Text("Saldo Poin Anda", fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f))
+                            Spacer(Modifier.height(6.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(Icons.Filled.Stars, contentDescription = null, tint = Color(0xFFFCAA33), modifier = Modifier.size(30.dp))
+                                Text("— Poin", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                            Spacer(Modifier.height(10.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color.White.copy(alpha = 0.12f))
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(Icons.Outlined.Info, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                                    Text("Poin bertambah otomatis setiap setoran selesai", fontSize = 11.sp, color = Color.White)
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            // ── Filter tabs ──────────────────────────────
-            item {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                ) {
-                    items(vm.kategoriList) { kat ->
-                        val isSelected = selectedKategori == kat
-                        Box(
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .background(if (isSelected) Primary else SurfaceContainer)
-                                .clickable { vm.setKategori(kat) }
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
-                            Text(kat, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-                                color = if (isSelected) Color.White else OnSurface)
+                // ── Filter tabs ──────────────────────────────
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    ) {
+                        items(vm.kategoriList) { kat ->
+                            val isSelected = selectedKategori == kat
+                            Box(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(if (isSelected) Primary else SurfaceContainer)
+                                    .clickable { vm.setKategori(kat) }
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                            ) {
+                                Text(kat, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                                    color = if (isSelected) Color.White else OnSurface)
+                            }
                         }
                     }
                 }
-            }
 
-            // ── Grid Hadiah ──────────────────────────────
-            item {
-                when (val s = state) {
-                    is UiState.Loading -> Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = Primary)
-                    }
-                    is UiState.Empty -> EmptyState(icon = Icons.Outlined.CardGiftcard, title = "Belum ada hadiah", message = "Hadiah kategori ini sedang tidak tersedia.")
-                    is UiState.Error -> EmptyState(icon = Icons.Outlined.ErrorOutline, title = "Gagal memuat", message = s.message, isError = true, onRetry = { vm.load() })
-                    is UiState.Success -> {
-                        // LazyVerticalGrid tidak bisa di dalam LazyColumn langsung,
-                        // gunakan Column + chunked
-                        Column(
-                            modifier = Modifier.padding(horizontal = 20.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            s.data.chunked(2).forEach { row ->
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    row.forEach { reward ->
-                                        RewardCard(
-                                            reward   = reward,
-                                            modifier = Modifier.weight(1f),
-                                            onTukar  = { vm.tukar(reward) },
-                                            isLoading = tukarState is UiState.Loading
-                                        )
+                // ── Grid Hadiah ──────────────────────────────
+                item {
+                    when (val s = state) {
+                        is UiState.Loading -> Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = Primary)
+                        }
+                        is UiState.Empty -> EmptyState(icon = Icons.Outlined.CardGiftcard, title = "Belum ada hadiah", message = "Hadiah kategori ini sedang tidak tersedia.")
+                        is UiState.Error -> EmptyState(icon = Icons.Outlined.ErrorOutline, title = "Gagal memuat", message = s.message, isError = true, onRetry = { vm.load() })
+                        is UiState.Success -> {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 20.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                s.data.chunked(2).forEach { row ->
+                                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        row.forEach { reward ->
+                                            RewardCard(
+                                                reward   = reward,
+                                                modifier = Modifier.weight(1f),
+                                                onTukar  = { vm.tukar(reward) },
+                                                isLoading = tukarState is UiState.Loading
+                                            )
+                                        }
+                                        if (row.size == 1) Spacer(Modifier.weight(1f))
                                     }
-                                    if (row.size == 1) Spacer(Modifier.weight(1f))
                                 }
                             }
                         }
@@ -158,6 +150,12 @@ fun TukarPoinScreen(vm: TukarPoinViewModel = viewModel()) {
                 }
             }
         }
+
+        // PENTING: Meletakkan SnackbarHost di dalam Box agar bisa melayang di atas konten screen
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp)
+        )
     }
 }
 

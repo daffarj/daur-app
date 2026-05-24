@@ -44,11 +44,6 @@ fun EdukasiLingkunganScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Edukasi Hijau", fontWeight = FontWeight.Bold, color = Primary, fontSize = 20.sp) },
-                actions = {
-                    IconButton(onClick = { vm.load() }) {
-                        Icon(Icons.Outlined.Refresh, contentDescription = "Refresh", tint = OnSurfaceVariant)
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Surface)
             )
         },

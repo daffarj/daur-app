@@ -21,15 +21,7 @@ object SupabaseClient {
         params: Map<String, String> = emptyMap()
     ): Result<String> = withContext(Dispatchers.IO) {
         try {
-            // ✅ Fix: takeIf isNotBlank() agar empty string tidak lolos
             val effectiveToken = token?.takeIf { it.isNotBlank() } ?: ANON_KEY
-
-            // 🔍 Debug log — hapus setelah masalah solved
-            android.util.Log.d(
-                "DAUR_DEBUG",
-                "GET $path | token ada: ${!token.isNullOrBlank()} | pakai anon: ${effectiveToken == ANON_KEY}"
-            )
-
             val query = if (params.isEmpty()) ""
             else "?" + params.entries.joinToString("&") { "${it.key}=${it.value}" }
             val url = URL("$BASE_URL/rest/v1$path$query")
@@ -48,16 +40,12 @@ object SupabaseClient {
                 conn.errorStream?.bufferedReader()?.readText() ?: ""
             }
             conn.disconnect()
-
-            // 🔍 Debug log — hapus setelah masalah solved
-            android.util.Log.d("DAUR_DEBUG", "GET $path → HTTP $code")
-
             if (code in 200..299) {
                 Result.success(body)
             } else {
                 val msg = when (code) {
                     401  -> "Sesi habis, silakan login ulang"
-                    403  -> "Akses ditolak (403) — token: ${effectiveToken.take(20)}..."
+                    403  -> "Akses ditolak — cek RLS policy"
                     404  -> "Tabel tidak ditemukan"
                     else -> "Error $code: $body"
                 }
@@ -70,8 +58,7 @@ object SupabaseClient {
                 e.message?.contains("timeout") == true ||
                         e.message?.contains("timed out") == true -> "Koneksi timeout, coba lagi"
                 e.message?.contains("CLEARTEXT") == true -> "Koneksi diblokir (cleartext)"
-                e.message?.contains("SSLHandshake") == true ||
-                        e.message?.contains("SSL") == true -> "Gagal verifikasi SSL"
+                e.message?.contains("SSL") == true -> "Gagal verifikasi SSL"
                 else -> "Gagal terhubung: ${e.javaClass.simpleName}"
             }
             Result.failure(Exception(msg))
@@ -85,15 +72,7 @@ object SupabaseClient {
         token: String? = null
     ): Result<String> = withContext(Dispatchers.IO) {
         try {
-            // ✅ Fix: sama seperti get(), pakai takeIf isNotBlank()
             val effectiveToken = token?.takeIf { it.isNotBlank() } ?: ANON_KEY
-
-            // 🔍 Debug log — hapus setelah masalah solved
-            android.util.Log.d(
-                "DAUR_DEBUG",
-                "POST $path | token ada: ${!token.isNullOrBlank()} | pakai anon: ${effectiveToken == ANON_KEY}"
-            )
-
             val url = URL("$BASE_URL/rest/v1$path")
             val conn = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
@@ -113,10 +92,6 @@ object SupabaseClient {
                 conn.errorStream?.bufferedReader()?.readText() ?: ""
             }
             conn.disconnect()
-
-            // 🔍 Debug log — hapus setelah masalah solved
-            android.util.Log.d("DAUR_DEBUG", "POST $path → HTTP $code")
-
             if (code in 200..299) {
                 Result.success(resp)
             } else {
@@ -189,6 +164,9 @@ object SupabaseClient {
         userId: String,
         katalogId: String,
         beratKg: Double,
+        totalPoin: Int,
+        totalHarga: Double,
+        catatan: String = "",
         token: String
     ): Result<String> {
         val kode = "STR-${System.currentTimeMillis()}"
@@ -197,8 +175,9 @@ object SupabaseClient {
             put("kode_setoran", kode)
             put("status", "menunggu")
             put("total_berat", beratKg)
-            put("total_poin", 0)
-            put("total_harga", 0.0)
+            put("total_poin", totalPoin)
+            put("total_harga", totalHarga)
+            if (catatan.isNotBlank()) put("catatan", catatan)
         }.toString()
 
         val setoranResult = post("/setoran", setoranBody, token)
@@ -213,8 +192,8 @@ object SupabaseClient {
             put("setoran_id", setoranId)
             put("katalog_id", katalogId)
             put("berat_kg", beratKg)
-            put("poin_didapat", 0)
-            put("harga_didapat", 0.0)
+            put("poin_didapat", totalPoin)
+            put("harga_didapat", totalHarga)
         }.toString()
         post("/detail_setoran", detailBody, token)
 
@@ -312,7 +291,7 @@ private fun JSONObject.toSetoran() = Setoran(
     totalPoin   = optInt("total_poin", 0),
     totalBerat  = optDouble("total_berat", 0.0),
     totalHarga  = optDouble("total_harga", 0.0),
-    catatan     = optString("catatan"),
+    catatan     = optString("catatan").takeIf { it != "null" && it.isNotBlank() } ?: "",
     createdAt   = optString("created_at")
 )
 

@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -41,6 +42,7 @@ fun BerandaScreen(
     onSetor: () -> Unit = {},
     onTukarPoin: () -> Unit = {},
     onLihatRiwayat: () -> Unit = {},
+    onProfile: () -> Unit = {},           // ← navigasi ke profil via avatar
     vm: BerandaViewModel = viewModel()
 ) {
     val state by vm.state.collectAsState()
@@ -72,8 +74,14 @@ fun BerandaScreen(
             is BerandaState.Success -> {
                 val data = s.data
 
-                // ── Greeting ───────────────────────────
-                item { GreetingSection(profile = data.profile, onRefresh = { vm.load() }) }
+                // ── Greeting + Avatar ──────────────────
+                item {
+                    GreetingSection(
+                        profile   = data.profile,
+                        onRefresh = { vm.load() },
+                        onProfile = onProfile          // ← teruskan ke avatar
+                    )
+                }
 
                 // ── Saldo Poin Card ────────────────────
                 item { SaldoPoinCard(profile = data.profile) }
@@ -125,8 +133,11 @@ fun BerandaScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Icon(Icons.Outlined.Inbox, contentDescription = null,
-                                        tint = OnSurfaceVariant.copy(alpha = 0.4f), modifier = Modifier.size(40.dp))
+                                    Icon(
+                                        Icons.Outlined.Inbox, contentDescription = null,
+                                        tint = OnSurfaceVariant.copy(alpha = 0.4f),
+                                        modifier = Modifier.size(40.dp)
+                                    )
                                     Text("Belum ada aktivitas", fontSize = 14.sp, color = OnSurfaceVariant)
                                     TextButton(onClick = onSetor) {
                                         Text("Mulai Setor Sekarang →", color = Primary, fontWeight = FontWeight.SemiBold)
@@ -150,9 +161,13 @@ fun BerandaScreen(
     }
 }
 
-// ── Greeting ───────────────────────────────────────────────
+// ── Greeting + Avatar ──────────────────────────────────────
 @Composable
-private fun GreetingSection(profile: Profile, onRefresh: () -> Unit) {
+private fun GreetingSection(
+    profile: Profile,
+    onRefresh: () -> Unit,
+    onProfile: () -> Unit
+) {
     val namaDepan = profile.namaLengkap.split(" ").firstOrNull()
         ?.ifEmpty { "Pengguna" } ?: "Pengguna"
 
@@ -174,13 +189,20 @@ private fun GreetingSection(profile: Profile, onRefresh: () -> Unit) {
                 color = OnSurfaceVariant
             )
         }
+
+        // Avatar — klik → profil
         Box(
             modifier = Modifier
                 .size(48.dp)
+                .shadow(elevation = 4.dp, shape = CircleShape)
                 .clip(CircleShape)
-                .background(PrimaryContainer)
-                .border(2.dp, Primary, CircleShape)
-                .clickable { onRefresh() },
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(Primary, Color(0xFF004D38))
+                    )
+                )
+                .border(2.dp, PrimaryContainer, CircleShape)
+                .clickable { onProfile() },
             contentAlignment = Alignment.Center
         ) {
             if (profile.namaLengkap.isNotEmpty()) {
@@ -188,10 +210,15 @@ private fun GreetingSection(profile: Profile, onRefresh: () -> Unit) {
                     text = profile.namaLengkap.first().uppercase(),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Primary
+                    color = Color.White
                 )
             } else {
-                Icon(Icons.Filled.Person, contentDescription = "Avatar", tint = Primary, modifier = Modifier.size(28.dp))
+                Icon(
+                    Icons.Filled.Person,
+                    contentDescription = "Profil",
+                    tint = Color.White,
+                    modifier = Modifier.size(26.dp)
+                )
             }
         }
     }
@@ -200,7 +227,7 @@ private fun GreetingSection(profile: Profile, onRefresh: () -> Unit) {
 // ── Saldo Poin Card ────────────────────────────────────────
 @Composable
 private fun SaldoPoinCard(profile: Profile) {
-    val nilaiRupiah = profile.totalPoin * 10  // 1 poin = Rp10
+    val nilaiRupiah = profile.totalPoin * 10
 
     Box(
         modifier = Modifier
@@ -209,7 +236,6 @@ private fun SaldoPoinCard(profile: Profile) {
             .background(Brush.linearGradient(colors = listOf(Primary, Color(0xFF004D38))))
             .padding(24.dp)
     ) {
-        // Dekorasi lingkaran
         Box(
             modifier = Modifier
                 .size(160.dp)
@@ -220,22 +246,32 @@ private fun SaldoPoinCard(profile: Profile) {
         )
 
         Column {
-            // Label
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(20.dp))
-                Text("Saldo Poin", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White.copy(alpha = 0.9f))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    Icons.Outlined.AccountBalanceWallet, contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    "Saldo Poin", fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White.copy(alpha = 0.9f)
+                )
             }
 
             Spacer(Modifier.height(12.dp))
 
-            // Nilai poin
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     Text(
                         text = "%,d".format(profile.totalPoin),
                         fontSize = 40.sp,
@@ -250,17 +286,21 @@ private fun SaldoPoinCard(profile: Profile) {
                         modifier = Modifier.padding(bottom = 6.dp)
                     )
                 }
+
+                // ── Icon poin — daun eco ───────────────
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFB8F0D8))  // hijau muda
+                        .background(Color(0xFFB8F0D8))
                         .padding(10.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Filled.Eco, contentDescription = null,
-                        tint = Color(0xFF006B3C), modifier = Modifier.size(32.dp))
+                    Icon(
+                        Icons.Filled.Eco, contentDescription = null,
+                        tint = Color(0xFF006B3C),
+                        modifier = Modifier.size(32.dp)
+                    )
                 }
-
             }
 
             Spacer(Modifier.height(16.dp))
@@ -277,9 +317,15 @@ private fun SaldoPoinCard(profile: Profile) {
                     fontSize = 12.sp,
                     color = Color.White.copy(alpha = 0.8f)
                 )
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Outlined.Recycling, contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(14.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        Icons.Outlined.Recycling, contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.size(14.dp)
+                    )
                     Text(
                         text = "${profile.totalSetoran} setoran",
                         fontSize = 12.sp,
@@ -338,7 +384,9 @@ private fun QuickActionButton(
             Box(
                 modifier = Modifier.size(48.dp).clip(CircleShape).background(iconBgColor),
                 contentAlignment = Alignment.Center
-            ) { Icon(icon, contentDescription = label, tint = iconTint, modifier = Modifier.size(28.dp)) }
+            ) {
+                Icon(icon, contentDescription = label, tint = iconTint, modifier = Modifier.size(28.dp))
+            }
             Text(label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = OnSurface)
         }
     }
@@ -368,7 +416,10 @@ private fun TargetProgressCard(beratSaatIni: Double, targetBerat: Double) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Target Setoran Mingguan", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = OnSurface)
+                Text(
+                    "Target Setoran Mingguan",
+                    fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = OnSurface
+                )
                 Text("$persenLabel%", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Primary)
             }
             Spacer(Modifier.height(8.dp))
@@ -435,9 +486,14 @@ private fun AktivitasItem(setoran: Setoran) {
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Box(
-                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(statusBg),
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(statusBg),
                 contentAlignment = Alignment.Center
-            ) { Icon(icon, contentDescription = null, tint = statusColor, modifier = Modifier.size(22.dp)) }
+            ) {
+                Icon(icon, contentDescription = null, tint = statusColor, modifier = Modifier.size(22.dp))
+            }
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -487,7 +543,6 @@ private fun EcoTipCard() {
         "Kertas bekas satu sisi masih bisa digunakan untuk catatan atau print draft."
     )
     val tip = remember { tips.random() }
-    val borderColor = Primary
 
     Row(
         modifier = Modifier
@@ -496,7 +551,7 @@ private fun EcoTipCard() {
             .background(Surface)
             .drawBehind {
                 drawLine(
-                    color = borderColor,
+                    color = Primary,
                     start = Offset(0f, 0f),
                     end = Offset(0f, size.height),
                     strokeWidth = 12.dp.toPx()

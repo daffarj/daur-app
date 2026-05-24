@@ -38,22 +38,14 @@ fun RiwayatSetoranScreen(vm: RiwayatViewModel = viewModel()) {
     val selectedFilter by vm.selectedFilter.collectAsState()
     var expandedId by remember { mutableStateOf<String?>(null) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Riwayat", fontWeight = FontWeight.Bold, color = Primary, fontSize = 20.sp) },
-                actions = {
-                    IconButton(onClick = { vm.load() }) {
-                        Icon(Icons.Outlined.Refresh, contentDescription = "Refresh", tint = OnSurfaceVariant)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Surface)
-            )
-        },
-        containerColor = Background
-    ) { innerPadding ->
+    // FIX: ganti Scaffold dengan Column biasa supaya tidak double padding
+    Column(modifier = Modifier.fillMaxSize().background(Background)) {
+        TopAppBar(
+            title = { Text("Riwayat", fontWeight = FontWeight.Bold, color = Primary, fontSize = 20.sp) },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Surface)
+        )
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(innerPadding),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
             // ── Header ──────────────────────────────────
@@ -206,7 +198,7 @@ private fun SetoranCard(setoran: Setoran, isExpanded: Boolean, onToggle: () -> U
                             DetailBox(label = "STATUS", value = statusLabel, valueColor = statusColor, bg = statusBg)
                             if (setoran.totalHarga > 0)
                                 DetailBox(label = "NILAI", value = "Rp %,.0f".format(setoran.totalHarga), valueColor = Secondary, bg = Secondary.copy(alpha = 0.08f))
-                            if (setoran.catatan.isNotEmpty())
+                            if (setoran.catatan.isNotEmpty() && setoran.catatan != "null")
                                 DetailBox(label = "CATATAN", value = setoran.catatan, valueColor = OnSurface, bg = Color(0xFFF3F4F5))
                         }
                     }

@@ -36,35 +36,28 @@ fun ProfilScreen(
     val state by vm.state.collectAsState()
     val context = LocalContext.current
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Profil", fontWeight = FontWeight.Bold, color = Primary, fontSize = 20.sp) },
-                actions = {
-                    IconButton(onClick = { vm.load() }) {
-                        Icon(Icons.Outlined.Refresh, contentDescription = "Refresh", tint = OnSurfaceVariant)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Surface)
-            )
-        },
-        containerColor = Background
-    ) { innerPadding ->
+    // FIX: ganti Scaffold dengan Column biasa supaya tidak double padding
+    Column(modifier = Modifier.fillMaxSize().background(Background)) {
+        TopAppBar(
+            title = { Text("Profil", fontWeight = FontWeight.Bold, color = Primary, fontSize = 20.sp) },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Surface)
+        )
         when (val s = state) {
-            is UiState.Loading -> Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
+            is UiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = Primary)
             }
-            is UiState.Error -> Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
+            is UiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 EmptyState(icon = Icons.Outlined.ErrorOutline, title = "Gagal memuat profil", message = s.message, isError = true, onRetry = { vm.load() })
             }
             is UiState.Success -> ProfilContent(profile = s.data, onLogout = {
-                vm.logout(context)  // ← pass context di sini
+                vm.logout(context)
                 onLogout()
             })
             else -> {}
         }
     }
 }
+
 
 @Composable
 private fun ProfilContent(profile: Profile, onLogout: () -> Unit) {

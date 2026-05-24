@@ -1,5 +1,6 @@
 package com.daur.app.viewmodel
 
+import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.daur.app.data.SessionManager
@@ -31,7 +32,6 @@ class ProfilViewModel : ViewModel() {
             val uid   = SessionManager.userId
             val token = SessionManager.accessToken
             if (uid.isEmpty()) {
-                // Tampilkan data dummy kalau belum login (preview)
                 _state.value = UiState.Success(Profile(namaLengkap = "Pengguna Daur", totalPoin = 0))
                 return@launch
             }
@@ -111,10 +111,19 @@ class SetorViewModel : ViewModel() {
     val submitState: StateFlow<UiState<String>?> = _submitState.asStateFlow()
 
     val selectedKatalog = MutableStateFlow<KatalogSampah?>(null)
-    val berat = MutableStateFlow(1.0f)
+    val berat           = MutableStateFlow(1.0f)
+    val catatan         = MutableStateFlow("")         // ← input catatan
+    val fotoBitmap      = MutableStateFlow<Bitmap?>(null) // ← foto dari kamera/galeri
 
-    val estimasiPoin: Int get() =
-        ((selectedKatalog.value?.poinPerKg ?: 15) * berat.value).toInt()
+    // Estimasi poin reaktif — update otomatis saat berat/katalog berubah
+    val estimasiPoin: StateFlow<Int> = combine(selectedKatalog, berat) { katalog, b ->
+        ((katalog?.poinPerKg ?: 0) * b).toInt()
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+
+    // Estimasi harga reaktif
+    val estimasiHarga: StateFlow<Double> = combine(selectedKatalog, berat) { katalog, b ->
+        (katalog?.hargaPerKg ?: 0.0) * b
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, 0.0)
 
     init { loadKatalog() }
 
@@ -130,20 +139,34 @@ class SetorViewModel : ViewModel() {
         }
     }
 
-    fun tambahBerat() { berat.value = (berat.value + 0.5f) }
-    fun kurangBerat() { if (berat.value > 0.5f) berat.value = (berat.value - 0.5f).coerceAtLeast(0.5f) }
+    fun tambahBerat() { berat.value = berat.value + 0.5f }
+    fun kurangBerat() { berat.value = (berat.value - 0.5f).coerceAtLeast(0.5f) }
+    fun setFoto(bitmap: Bitmap?) { fotoBitmap.value = bitmap }
+    fun hapusFoto() { fotoBitmap.value = null }
 
     fun setor() {
         val katalog = selectedKatalog.value ?: return
+        val beratDouble = berat.value.toDouble()
+        val totalPoin   = (katalog.poinPerKg * beratDouble).toInt()
+        val totalHarga  = katalog.hargaPerKg * beratDouble
+
         viewModelScope.launch {
             _submitState.value = UiState.Loading
             SupabaseClient.buatSetoran(
-                userId    = SessionManager.userId,
-                katalogId = katalog.id,
-                beratKg   = berat.value.toDouble(),
-                token     = SessionManager.accessToken
+                userId     = SessionManager.userId,
+                katalogId  = katalog.id,
+                beratKg    = beratDouble,
+                totalPoin  = totalPoin,
+                totalHarga = totalHarga,
+                catatan    = catatan.value,
+                token      = SessionManager.accessToken
             )
-                .onSuccess { _submitState.value = UiState.Success(it) }
+                .onSuccess {
+                    // Reset form setelah berhasil
+                    catatan.value    = ""
+                    fotoBitmap.value = null
+                    _submitState.value = UiState.Success(it)
+                }
                 .onFailure { _submitState.value = UiState.Error(it.message ?: "Gagal mengirim setoran") }
         }
     }
@@ -180,18 +203,12 @@ class RiwayatViewModel : ViewModel() {
             val uid = SessionManager.userId
             if (uid.isEmpty()) { _state.value = UiState.Empty; return@launch }
             SupabaseClient.getSetoran(uid, SessionManager.accessToken)
-                .onSuccess {
-                    allItems = it
-                    applyFilter()
-                }
+                .onSuccess { allItems = it; applyFilter() }
                 .onFailure { _state.value = UiState.Error(it.message ?: "Gagal memuat riwayat") }
         }
     }
 
-    fun setFilter(f: String) {
-        _selectedFilter.value = f
-        applyFilter()
-    }
+    fun setFilter(f: String) { _selectedFilter.value = f; applyFilter() }
 
     private fun applyFilter() {
         val f = _selectedFilter.value
@@ -223,18 +240,12 @@ class TukarPoinViewModel : ViewModel() {
         viewModelScope.launch {
             _state.value = UiState.Loading
             SupabaseClient.getReward(SessionManager.accessToken)
-                .onSuccess {
-                    allItems = it
-                    applyFilter()
-                }
+                .onSuccess { allItems = it; applyFilter() }
                 .onFailure { _state.value = UiState.Error(it.message ?: "Gagal memuat hadiah") }
         }
     }
 
-    fun setKategori(k: String) {
-        _selectedKategori.value = k
-        applyFilter()
-    }
+    fun setKategori(k: String) { _selectedKategori.value = k; applyFilter() }
 
     private fun applyFilter() {
         val k = _selectedKategori.value
@@ -290,23 +301,14 @@ class EdukasiViewModel : ViewModel() {
         viewModelScope.launch {
             _state.value = UiState.Loading
             SupabaseClient.getEdukasi(SessionManager.accessToken)
-                .onSuccess {
-                    allItems = it
-                    applyFilter()
-                }
+                .onSuccess { allItems = it; applyFilter() }
                 .onFailure { _state.value = UiState.Error(it.message ?: "Gagal memuat edukasi") }
         }
     }
 
-    fun setFilter(f: String) {
-        _selectedFilter.value = f
-        applyFilter()
-    }
+    fun setFilter(f: String) { _selectedFilter.value = f; applyFilter() }
 
-    fun setSearch(q: String) {
-        _searchQuery.value = q
-        applyFilter()
-    }
+    fun setSearch(q: String) { _searchQuery.value = q; applyFilter() }
 
     private fun applyFilter() {
         val f = _selectedFilter.value
