@@ -121,48 +121,31 @@ fun VoucherDetailSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Tombol Gunakan/Terpakai
-            if (userVoucher.status == "belum_digunakan") {
-                Button(
-                    onClick = onGunakan,
-                    enabled = !isLoading,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Filled.Stars,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Gunakan Voucher", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-            } else {
-                Button(
-                    onClick = {},
-                    enabled = false,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = SurfaceContainer,
-                        disabledContainerColor = SurfaceContainer
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("Sudah Digunakan", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = OnSurfaceVariant)
+            // Tombol Gunakan
+            Button(
+                onClick = onGunakan,
+                enabled = !isLoading,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Filled.Stars,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Gunakan & Hapus Voucher", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
 

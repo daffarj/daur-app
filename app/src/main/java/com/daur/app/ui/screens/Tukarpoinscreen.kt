@@ -63,7 +63,7 @@ fun TukarPoinScreen(vm: TukarPoinViewModel = viewModel()) {
     LaunchedEffect(gunakanState) {
         when (val t = gunakanState) {
             is UiState.Success -> {
-                snackbarHostState.showSnackbar("✅ Voucher berhasil digunakan!")
+                snackbarHostState.showSnackbar("✅ Voucher berhasil digunakan dan dihapus!")
                 vm.resetGunakan()
                 selectedVoucher = null
             }

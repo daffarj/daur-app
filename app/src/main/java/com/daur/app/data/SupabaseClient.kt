@@ -430,12 +430,39 @@ object SupabaseClient {
     suspend fun gunakanVoucher(
         userVoucherId: String,
         token: String
-    ): Result<Unit> {
-        val body = JSONObject().apply {
-            put("status", "digunakan")
-            put("digunakan_pada", System.currentTimeMillis())
-        }.toString()
-        return patch("/user_voucher", body, userVoucherId, token)
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val effectiveToken = token.takeIf { it.isNotBlank() } ?: ANON_KEY
+            val url = URL("$BASE_URL/rest/v1/user_voucher?id=eq.$userVoucherId")
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "DELETE"
+                connectTimeout = 10_000
+                readTimeout = 10_000
+                setRequestProperty("apikey", ANON_KEY)
+                setRequestProperty("Authorization", "Bearer $effectiveToken")
+                setRequestProperty("Content-Type", "application/json")
+            }
+            val code = conn.responseCode
+            val resp = try {
+                conn.inputStream.bufferedReader().readText()
+            } catch (_: Exception) {
+                conn.errorStream?.bufferedReader()?.readText() ?: ""
+            }
+            conn.disconnect()
+            if (code in 200..299) {
+                Result.success(Unit)
+            } else {
+                val msg = when (code) {
+                    401  -> { SessionManager.notifySessionExpired(); "Sesi habis, silakan login ulang" }
+                    403  -> "Akses ditolak — pastikan kamu pemilik voucher ini"
+                    404  -> "Voucher tidak ditemukan"
+                    else -> "Gagal menghapus voucher (kode: $code): $resp"
+                }
+                Result.failure(Exception(msg))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(networkError(e)))
+        }
     }
 
     suspend fun tukarPoin(

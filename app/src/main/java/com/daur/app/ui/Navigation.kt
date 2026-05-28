@@ -32,6 +32,7 @@ fun DaurNavGraph(context: Context, startDestination: String = Routes.SPLASH) {
                 popUpTo(0) { inclusive = true }
                 
             }
+
         }
     }
 
