@@ -26,7 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.daur.app.model.Reward
+import com.daur.app.model.UserVoucher
 import com.daur.app.ui.theme.*
 import com.daur.app.viewmodel.TukarPoinViewModel
 import com.daur.app.viewmodel.UiState
@@ -37,13 +37,21 @@ import com.daur.app.data.SessionManager
 fun TukarPoinScreen(vm: TukarPoinViewModel = viewModel()) {
     val state by vm.state.collectAsState()
     val selectedKategori by vm.selectedKategori.collectAsState()
-    val tukarState by vm.tukarState.collectAsState()
+    val klaimState by vm.klaimState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(tukarState) {
-        when (val t = tukarState) {
-            is UiState.Success -> { snackbarHostState.showSnackbar("✅ Penukaran berhasil!"); vm.resetTukar() }
-            is UiState.Error   -> { snackbarHostState.showSnackbar("❌ ${t.message}"); vm.resetTukar() }
+    var showDialog by remember { mutableStateOf(false) }
+    var inputKode by remember { mutableStateOf("") }
+
+    LaunchedEffect(klaimState) {
+        when (val t = klaimState) {
+            is UiState.Success -> { 
+                snackbarHostState.showSnackbar("✅ Voucher berhasil diklaim!")
+                vm.resetKlaim() 
+                showDialog = false
+                inputKode = ""
+            }
+            is UiState.Error   -> { snackbarHostState.showSnackbar("❌ ${t.message}"); vm.resetKlaim() }
             else -> {}
         }
     }
@@ -53,7 +61,12 @@ fun TukarPoinScreen(vm: TukarPoinViewModel = viewModel()) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().background(Background)) {
             TopAppBar(
-                title = { Text("Tukar Poin", fontWeight = FontWeight.Bold, color = Primary, fontSize = 20.sp) },
+                title = { Text("Voucher Saya", fontWeight = FontWeight.Bold, color = Primary, fontSize = 20.sp) },
+                actions = {
+                    TextButton(onClick = { showDialog = true }) {
+                        Text("+ Tambah", color = Primary, fontWeight = FontWeight.Bold)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Surface)
             )
             LazyColumn(
@@ -124,7 +137,7 @@ fun TukarPoinScreen(vm: TukarPoinViewModel = viewModel()) {
                         is UiState.Loading -> Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(color = Primary)
                         }
-                        is UiState.Empty -> EmptyState(icon = Icons.Outlined.CardGiftcard, title = "Belum ada hadiah", message = "Hadiah kategori ini sedang tidak tersedia.")
+                        is UiState.Empty -> EmptyState(icon = Icons.Outlined.LocalOffer, title = "Belum ada voucher", message = "Anda belum mengklaim voucher. Tekan tombol + Tambah di atas.")
                         is UiState.Error -> EmptyState(icon = Icons.Outlined.ErrorOutline, title = "Gagal memuat", message = s.message, isError = true, onRetry = { vm.load() })
                         is UiState.Success -> {
                             Column(
@@ -133,12 +146,10 @@ fun TukarPoinScreen(vm: TukarPoinViewModel = viewModel()) {
                             ) {
                                 s.data.chunked(2).forEach { row ->
                                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                        row.forEach { reward ->
+                                        row.forEach { userVoucher ->
                                             RewardCard(
-                                                reward   = reward,
-                                                modifier = Modifier.weight(1f),
-                                                onTukar  = { vm.tukar(reward) },
-                                                isLoading = tukarState is UiState.Loading
+                                                userVoucher = userVoucher,
+                                                modifier  = Modifier.weight(1f)
                                             )
                                         }
                                         if (row.size == 1) Spacer(Modifier.weight(1f))
@@ -156,16 +167,50 @@ fun TukarPoinScreen(vm: TukarPoinViewModel = viewModel()) {
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp)
         )
+
+        if (showDialog) {
+            AlertDialog(
+                onDismissRequest = { showDialog = false; inputKode = "" },
+                title = { Text("Tambah Voucher") },
+                text = {
+                    OutlinedTextField(
+                        value = inputKode,
+                        onValueChange = { inputKode = it },
+                        label = { Text("Kode Voucher") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { vm.klaim(inputKode) },
+                        enabled = inputKode.isNotBlank() && klaimState !is UiState.Loading
+                    ) {
+                        if (klaimState is UiState.Loading) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                        } else {
+                            Text("Klaim")
+                        }
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDialog = false; inputKode = "" }) {
+                        Text("Batal")
+                    }
+                }
+            )
+        }
     }
 }
 
 @Composable
-private fun RewardCard(reward: Reward, modifier: Modifier, onTukar: () -> Unit, isLoading: Boolean) {
-    val (iconBg, iconColor) = when (reward.kategori) {
-        "voucher" -> Secondary.copy(alpha = 0.1f) to Secondary
-        "donasi"  -> Color(0xFF006B5B).copy(alpha = 0.1f) to Color(0xFF006B5B)
-        else      -> Primary.copy(alpha = 0.1f) to Primary
-    }
+private fun RewardCard(userVoucher: UserVoucher, modifier: Modifier) {
+    val voucher = userVoucher.voucher
+    if (voucher == null) return // Jika null (seharusnya tidak terjadi), tidak usah tampilkan card
+
+    val iconBg = Secondary.copy(alpha = 0.1f)
+    val iconColor = Secondary
+
     Card(
         modifier  = modifier,
         shape     = RoundedCornerShape(16.dp),
@@ -177,42 +222,38 @@ private fun RewardCard(reward: Reward, modifier: Modifier, onTukar: () -> Unit, 
             // Thumbnail
             Box(modifier = Modifier.fillMaxWidth().height(110.dp).background(iconBg), contentAlignment = Alignment.Center) {
                 Icon(
-                    imageVector = when (reward.kategori) {
-                        "voucher" -> Icons.Outlined.LocalOffer
-                        "donasi"  -> Icons.Outlined.Favorite
-                        else      -> Icons.Outlined.Inventory2
-                    },
+                    imageVector = Icons.Outlined.LocalOffer,
                     contentDescription = null, tint = iconColor, modifier = Modifier.size(44.dp)
                 )
-                // Badge poin
+                // Badge diskon
                 Box(
                     modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).clip(CircleShape).background(Secondary).padding(horizontal = 6.dp, vertical = 3.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                         Icon(Icons.Filled.Stars, contentDescription = null, tint = Color(0xFF2a1700), modifier = Modifier.size(11.dp))
-                        Text("%,d".format(reward.poinDiperlukan), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2a1700))
+                        val textDiskon = if (voucher.tipeDiskon.equals("persen", ignoreCase = true)) "${voucher.nilaiDiskon.toInt()}%" else "Rp %,d".format(voucher.nilaiDiskon.toInt())
+                        Text(textDiskon, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2a1700))
                     }
                 }
             }
             Column(modifier = Modifier.padding(10.dp)) {
-                Text(reward.nama, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = OnSurface, maxLines = 2, lineHeight = 18.sp)
-                if (reward.deskripsi.isNotEmpty()) {
+                Text(voucher.nama, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = OnSurface, maxLines = 2, lineHeight = 18.sp)
+                if (voucher.deskripsi.isNotEmpty()) {
                     Spacer(Modifier.height(2.dp))
-                    Text(reward.deskripsi, fontSize = 11.sp, color = OnSurfaceVariant, maxLines = 2)
+                    Text(voucher.deskripsi, fontSize = 11.sp, color = OnSurfaceVariant, maxLines = 2)
                 }
                 Spacer(Modifier.height(4.dp))
-                // Stok
-                Text("Stok: ${reward.stok}", fontSize = 11.sp, color = if (reward.stok > 5) Primary else Error)
+                // Sisa Kuota tidak perlu ditampilkan untuk voucher yang sudah dimiliki, kita tampilkan Status
+                Text("Status: ${userVoucher.status}", fontSize = 11.sp, color = if (userVoucher.status == "belum_digunakan") Primary else Error)
                 Spacer(Modifier.height(8.dp))
                 Button(
-                    onClick  = onTukar,
-                    enabled  = !isLoading && reward.stok > 0,
+                    onClick  = { /* Aksi gunakan voucher */ },
+                    enabled  = userVoucher.status == "belum_digunakan",
                     modifier = Modifier.fillMaxWidth().height(36.dp),
                     shape    = CircleShape,
                     colors   = ButtonDefaults.buttonColors(containerColor = Primary)
                 ) {
-                    if (isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
-                    else Text("Tukar", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text(if (userVoucher.status == "belum_digunakan") "Gunakan" else "Terpakai", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }

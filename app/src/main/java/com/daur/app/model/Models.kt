@@ -82,3 +82,30 @@ data class Edukasi(
     val isPublished: Boolean = true,
     val createdAt: String = ""
 )
+
+// ── Voucher (tabel: voucher) ───────────────────────────────
+data class Voucher(
+    val id: String = "",
+    val kode: String = "",
+    val nama: String = "",
+    val deskripsi: String = "",
+    val tipeDiskon: String = "",
+    val nilaiDiskon: Double = 0.0,
+    val kuota: Int = 0,
+    val kuotaTerpakai: Int = 0,
+    val isActive: Boolean = true,
+    val createdAt: String = "",
+    val updatedAt: String = ""
+)
+
+// ── User Voucher (tabel: user_voucher) ───────────────────────
+data class UserVoucher(
+    val id: String = "",
+    val userId: String = "",
+    val voucherId: String = "",
+    val status: String = "belum_digunakan",
+    val digunakanPada: String = "",
+    val createdAt: String = "",
+    val voucher: Voucher? = null
+)
+
