@@ -143,6 +143,49 @@ object SupabaseClient {
         }
     }
 
+    // ── PATCH ───────────────────────────────────────────────
+    private suspend fun patch(
+        path: String,
+        body: String,
+        id: String,
+        token: String? = null
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val effectiveToken = token?.takeIf { it.isNotBlank() } ?: ANON_KEY
+            val url = URL("$BASE_URL/rest/v1$path?id=eq.$id")
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "PATCH"
+                connectTimeout = 10_000
+                readTimeout = 10_000
+                setRequestProperty("apikey", ANON_KEY)
+                setRequestProperty("Authorization", "Bearer $effectiveToken")
+                setRequestProperty("Content-Type", "application/json")
+                doOutput = true
+                outputStream.write(body.toByteArray())
+            }
+            val code = conn.responseCode
+            val resp = try {
+                conn.inputStream.bufferedReader().readText()
+            } catch (_: Exception) {
+                conn.errorStream?.bufferedReader()?.readText() ?: ""
+            }
+            conn.disconnect()
+            if (code in 200..299) {
+                Result.success(Unit)
+            } else {
+                val msg = when (code) {
+                    401 -> { SessionManager.notifySessionExpired(); "Sesi habis, silakan login ulang" }
+                    403 -> "Tidak punya akses (403)"
+                    404 -> "Data tidak ditemukan"
+                    else -> "Gagal update data (kode: $code) | $resp"
+                }
+                Result.failure(Exception(msg))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(networkError(e)))
+        }
+    }
+
     // ── DELETE SETORAN via RPC (aman, bypass API DISABLED) ─
     suspend fun deleteSetoran(setoranId: String, token: String): Result<Unit> =
         withContext(Dispatchers.IO) {
@@ -382,6 +425,17 @@ object SupabaseClient {
         }.toString()
         
         return post("/user_voucher", body, token).map { }
+    }
+
+    suspend fun gunakanVoucher(
+        userVoucherId: String,
+        token: String
+    ): Result<Unit> {
+        val body = JSONObject().apply {
+            put("status", "digunakan")
+            put("digunakan_pada", System.currentTimeMillis())
+        }.toString()
+        return patch("/user_voucher", body, userVoucherId, token)
     }
 
     suspend fun tukarPoin(

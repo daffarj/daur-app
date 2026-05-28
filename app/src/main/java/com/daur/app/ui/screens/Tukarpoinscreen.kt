@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.daur.app.model.UserVoucher
 import com.daur.app.ui.theme.*
+import com.daur.app.ui.components.VoucherDetailSheet
 import com.daur.app.viewmodel.TukarPoinViewModel
 import com.daur.app.viewmodel.UiState
 import com.daur.app.data.SessionManager
@@ -38,20 +39,35 @@ fun TukarPoinScreen(vm: TukarPoinViewModel = viewModel()) {
     val state by vm.state.collectAsState()
     val selectedKategori by vm.selectedKategori.collectAsState()
     val klaimState by vm.klaimState.collectAsState()
+    val gunakanState by vm.gunakanState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     var showDialog by remember { mutableStateOf(false) }
     var inputKode by remember { mutableStateOf("") }
+    var selectedVoucher by remember { mutableStateOf<UserVoucher?>(null) }
+    val sheetState = rememberModalBottomSheetState()
 
     LaunchedEffect(klaimState) {
         when (val t = klaimState) {
-            is UiState.Success -> { 
+            is UiState.Success -> {
                 snackbarHostState.showSnackbar("✅ Voucher berhasil diklaim!")
-                vm.resetKlaim() 
+                vm.resetKlaim()
                 showDialog = false
                 inputKode = ""
             }
             is UiState.Error   -> { snackbarHostState.showSnackbar("❌ ${t.message}"); vm.resetKlaim() }
+            else -> {}
+        }
+    }
+
+    LaunchedEffect(gunakanState) {
+        when (val t = gunakanState) {
+            is UiState.Success -> {
+                snackbarHostState.showSnackbar("✅ Voucher berhasil digunakan!")
+                vm.resetGunakan()
+                selectedVoucher = null
+            }
+            is UiState.Error   -> { snackbarHostState.showSnackbar("❌ ${t.message}"); vm.resetGunakan() }
             else -> {}
         }
     }
@@ -149,7 +165,8 @@ fun TukarPoinScreen(vm: TukarPoinViewModel = viewModel()) {
                                         row.forEach { userVoucher ->
                                             RewardCard(
                                                 userVoucher = userVoucher,
-                                                modifier  = Modifier.weight(1f)
+                                                modifier  = Modifier.weight(1f),
+                                                onClick = { selectedVoucher = userVoucher }
                                             )
                                         }
                                         if (row.size == 1) Spacer(Modifier.weight(1f))
@@ -200,19 +217,40 @@ fun TukarPoinScreen(vm: TukarPoinViewModel = viewModel()) {
                 }
             )
         }
+
+        // Bottom Sheet untuk detail voucher
+        if (selectedVoucher != null) {
+            ModalBottomSheet(
+                onDismissRequest = { selectedVoucher = null },
+                sheetState = sheetState,
+                containerColor = Color.White,
+                scrimColor = Color.Black.copy(alpha = 0.32f)
+            ) {
+                VoucherDetailSheet(
+                    userVoucher = selectedVoucher!!,
+                    onDismiss = { selectedVoucher = null },
+                    onGunakan = { vm.gunakan(selectedVoucher!!.id) },
+                    gunakanState = gunakanState
+                )
+            }
+        }
     }
 }
 
 @Composable
-private fun RewardCard(userVoucher: UserVoucher, modifier: Modifier) {
+private fun RewardCard(
+    userVoucher: UserVoucher,
+    modifier: Modifier,
+    onClick: () -> Unit = {}
+) {
     val voucher = userVoucher.voucher
-    if (voucher == null) return // Jika null (seharusnya tidak terjadi), tidak usah tampilkan card
+    if (voucher == null) return
 
     val iconBg = Secondary.copy(alpha = 0.1f)
     val iconColor = Secondary
 
     Card(
-        modifier  = modifier,
+        modifier  = modifier.clickable { onClick() },
         shape     = RoundedCornerShape(16.dp),
         colors    = CardDefaults.cardColors(containerColor = Color.White),
         border    = androidx.compose.foundation.BorderStroke(1.dp, OutlineVariant),
@@ -243,17 +281,16 @@ private fun RewardCard(userVoucher: UserVoucher, modifier: Modifier) {
                     Text(voucher.deskripsi, fontSize = 11.sp, color = OnSurfaceVariant, maxLines = 2)
                 }
                 Spacer(Modifier.height(4.dp))
-                // Sisa Kuota tidak perlu ditampilkan untuk voucher yang sudah dimiliki, kita tampilkan Status
                 Text("Status: ${userVoucher.status}", fontSize = 11.sp, color = if (userVoucher.status == "belum_digunakan") Primary else Error)
                 Spacer(Modifier.height(8.dp))
                 Button(
-                    onClick  = { /* Aksi gunakan voucher */ },
+                    onClick  = { onClick() },
                     enabled  = userVoucher.status == "belum_digunakan",
                     modifier = Modifier.fillMaxWidth().height(36.dp),
                     shape    = CircleShape,
                     colors   = ButtonDefaults.buttonColors(containerColor = Primary)
                 ) {
-                    Text(if (userVoucher.status == "belum_digunakan") "Gunakan" else "Terpakai", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text(if (userVoucher.status == "belum_digunakan") "Lihat Detail" else "Terpakai", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
