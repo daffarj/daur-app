@@ -245,54 +245,78 @@ class RiwayatViewModel : ViewModel() {
 // TUKAR POIN VIEW MODEL
 // ──────────────────────────────────────────────────────────
 class TukarPoinViewModel : ViewModel() {
-    private val _state = MutableStateFlow<UiState<List<Reward>>>(UiState.Loading)
-    val state: StateFlow<UiState<List<Reward>>> = _state.asStateFlow()
+    private val _state = MutableStateFlow<UiState<List<UserVoucher>>>(UiState.Loading)
+    val state: StateFlow<UiState<List<UserVoucher>>> = _state.asStateFlow()
 
-    private val _tukarState = MutableStateFlow<UiState<Unit>?>(null)
-    val tukarState: StateFlow<UiState<Unit>?> = _tukarState.asStateFlow()
+    private val _klaimState = MutableStateFlow<UiState<Unit>?>(null)
+    val klaimState: StateFlow<UiState<Unit>?> = _klaimState.asStateFlow()
 
-    private val _selectedKategori = MutableStateFlow("Semua Hadiah")
+    private val _gunakanState = MutableStateFlow<UiState<Unit>?>(null)
+    val gunakanState: StateFlow<UiState<Unit>?> = _gunakanState.asStateFlow()
+
+    private val _selectedKategori = MutableStateFlow("Voucher Saya")
     val selectedKategori: StateFlow<String> = _selectedKategori.asStateFlow()
 
-    private var allItems: List<Reward> = emptyList()
+    private var allItems: List<UserVoucher> = emptyList()
 
-    val kategoriList = listOf("Semua Hadiah", "Voucher", "Produk", "Donasi")
+    val kategoriList = listOf("Voucher Saya")
 
     init { load() }
 
     fun load() {
         viewModelScope.launch {
             _state.value = UiState.Loading
-            SupabaseClient.getReward(SessionManager.accessToken)
+            val userId = SessionManager.userId
+            if (userId.isEmpty()) {
+                _state.value = UiState.Error("Sesi habis. Silakan login kembali.")
+                return@launch
+            }
+            SupabaseClient.getUserVouchers(userId, SessionManager.accessToken)
                 .onSuccess { allItems = it; applyFilter() }
-                .onFailure { _state.value = UiState.Error(it.message ?: "Gagal memuat hadiah") }
+                .onFailure {
+                    allItems = emptyList()
+                    applyFilter()
+                }
         }
     }
 
     fun setKategori(k: String) { _selectedKategori.value = k; applyFilter() }
 
     private fun applyFilter() {
-        val k = _selectedKategori.value
-        val filtered = if (k == "Semua Hadiah") allItems
-        else allItems.filter { it.kategori.equals(k, ignoreCase = true) }
-        _state.value = if (filtered.isEmpty()) UiState.Empty else UiState.Success(filtered)
+        _state.value = if (allItems.isEmpty()) UiState.Empty else UiState.Success(allItems)
     }
 
-    fun tukar(reward: Reward) {
+    fun klaim(kode: String) {
+        if (kode.isBlank()) return
         viewModelScope.launch {
-            _tukarState.value = UiState.Loading
-            SupabaseClient.tukarPoin(
-                userId        = SessionManager.userId,
-                rewardId      = reward.id,
-                poinDigunakan = reward.poinDiperlukan,
-                token         = SessionManager.accessToken
-            )
-                .onSuccess { _tukarState.value = UiState.Success(Unit) }
-                .onFailure { _tukarState.value = UiState.Error(it.message ?: "Gagal menukar poin") }
+            _klaimState.value = UiState.Loading
+            SupabaseClient.klaimVoucherKode(SessionManager.userId, kode, SessionManager.accessToken)
+                .onSuccess {
+                    _klaimState.value = UiState.Success(Unit)
+                    load()
+                }
+                .onFailure {
+                    _klaimState.value = UiState.Error(it.message ?: "Gagal mengklaim voucher")
+                }
         }
     }
 
-    fun resetTukar() { _tukarState.value = null }
+    fun gunakan(userVoucherId: String) {
+        viewModelScope.launch {
+            _gunakanState.value = UiState.Loading
+            SupabaseClient.gunakanVoucher(userVoucherId, SessionManager.accessToken)
+                .onSuccess {
+                    _gunakanState.value = UiState.Success(Unit)
+                    load()
+                }
+                .onFailure {
+                    _gunakanState.value = UiState.Error(it.message ?: "Gagal menggunakan voucher")
+                }
+        }
+    }
+
+    fun resetKlaim() { _klaimState.value = null }
+    fun resetGunakan() { _gunakanState.value = null }
 }
 
 // ──────────────────────────────────────────────────────────
